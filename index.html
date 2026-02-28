@@ -10,193 +10,761 @@
         .money { color: #15803d; font-family: ui-monospace, monospace; font-weight: 700; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
         .modal.active { display: flex; }
-        tr { cursor: pointer; transition: background 0.2s; }
-        tr:hover { background-color: #f8fafc; }
+        tbody tr { cursor: pointer; transition: background 0.15s; }
+        tbody tr:hover { background-color: #f1f5f9; }
         .filter-btn.active { background-color: #002868; color: white; border-color: #002868; }
+        .team-toggle { cursor: pointer; user-select: none; }
+        .team-members { display: none; }
+        .team-members.open { display: block; }
+        .source-link { color: #2563eb; text-decoration: underline; font-size: 11px; }
+        .source-link:hover { color: #1d4ed8; }
+        .sort-btn.active { background-color: #0f766e; color: white; border-color: #0f766e; }
+        @media (max-width: 640px) {
+            .modal > div { margin: 0.5rem; border-radius: 1rem; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 pb-20">
 
-    <!-- STICKY USA HEADER -->
-    <header class="usa-sticky shadow-md px-4 py-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <div>
-                <div class="bg-blue-900 text-white px-2 py-0.5 rounded text-[10px] font-black italic mb-1 w-fit uppercase tracking-wider">Team USA Total Payouts</div>
-                <div class="text-3xl font-black money" id="usa-total-header">$0</div>
+    <header class="usa-sticky shadow-md px-3 py-3">
+        <div class="max-w-5xl mx-auto flex justify-between items-center gap-2">
+            <div class="min-w-0">
+                <div class="bg-blue-900 text-white px-2 py-0.5 rounded text-[9px] font-black italic mb-0.5 w-fit uppercase tracking-wider">Team USA Total Payouts</div>
+                <div class="text-xl sm:text-3xl font-black money" id="usa-total-header">$0</div>
             </div>
-            <button onclick="toggleCountryTable()" class="bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-slate-700">
-                View Country Rate Card
+            <button onclick="toggleCountryTable()" class="shrink-0 bg-slate-800 text-white text-[11px] font-bold px-3 py-2 rounded-lg hover:bg-slate-700">
+                Rate Card
             </button>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto p-4 space-y-6">
-        
-        <!-- SEARCH & FILTERS -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
-            <input type="text" id="search" placeholder="Search athlete, team, or country..." class="w-full p-2 border border-slate-200 rounded-lg text-sm">
-            <div class="flex flex-wrap gap-2" id="filter-container">
-                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold active" onclick="filter('all', this)">All Results</button>
-                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('physical', this)">Physical Gifts</button>
-                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('non-physical', this)">Non-Physical Perks</button>
-                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('usa', this)">Team USA</button>
+    <main class="max-w-5xl mx-auto p-4 space-y-6">
+        <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <input type="text" id="search" placeholder="Search athlete, country, or sport..." class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+            <div class="flex flex-wrap gap-2 items-center justify-between">
+                <div class="flex flex-wrap gap-1.5">
+                    <button class="filter-btn border px-2.5 py-1 rounded-full text-xs font-bold active" onclick="filter('all',this)">All</button>
+                    <button class="filter-btn border px-2.5 py-1 rounded-full text-xs font-bold" onclick="filter('usa',this)">Team USA</button>
+                    <button class="filter-btn border px-2.5 py-1 rounded-full text-xs font-bold" onclick="filter('physical',this)">Gifts</button>
+                    <button class="filter-btn border px-2.5 py-1 rounded-full text-xs font-bold" onclick="filter('perks',this)">Perks</button>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Sort:</span>
+                    <button id="sort-payout-btn" class="sort-btn border px-2.5 py-1 rounded-full text-xs font-bold active" onclick="setSort('payout',this)">💰 Payout</button>
+                    <button id="sort-medals-btn" class="sort-btn border px-2.5 py-1 rounded-full text-xs font-bold" onclick="setSort('medals',this)">🏅 Medals</button>
+                </div>
             </div>
         </div>
 
-        <!-- MAIN LEADERBOARD -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 border-b font-bold text-slate-500 uppercase text-[10px] tracking-widest">
-                        <tr>
-                            <th class="p-4">Rank / Athlete</th>
-                            <th class="p-4">Country</th>
-                            <th class="p-4">Medals</th>
-                            <th class="p-4 text-right">Total Est. Value</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body"></tbody>
-                </table>
-            </div>
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 border-b font-bold text-slate-500 uppercase text-[10px] tracking-widest">
+                    <tr>
+                        <th class="p-3 sm:p-4">Rank / Athlete</th>
+                        <th class="p-3 sm:p-4 hidden sm:table-cell">NOC</th>
+                        <th class="p-3 sm:p-4">Medals</th>
+                        <th class="p-3 sm:p-4 text-right">Est. Value</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
         </div>
     </main>
 
-    <!-- ATHLETE DETAIL MODAL -->
+    <!-- ATHLETE MODAL -->
     <div id="athlete-modal" class="modal" onclick="closeModals()">
-        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4" onclick="event.stopPropagation()">
-            <div id="modal-content"></div>
-            <button onclick="closeModals()" class="w-full bg-slate-100 py-2 rounded-lg font-bold text-sm">Close</button>
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
+            <div class="p-6 space-y-4" id="modal-content"></div>
+            <div class="px-6 pb-6">
+                <button onclick="closeModals()" class="w-full bg-slate-100 py-2 rounded-lg font-bold text-sm hover:bg-slate-200">Close</button>
+            </div>
         </div>
     </div>
 
     <!-- COUNTRY RATE CARD MODAL -->
     <div id="country-modal" class="modal" onclick="closeModals()">
-        <div class="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[80vh]">
-            <h2 class="text-xl font-black mb-4">2026 Country Reward Table</h2>
-            <div id="country-table-content" class="space-y-4"></div>
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-y-auto max-h-[85vh]" onclick="event.stopPropagation()">
+            <div class="p-6">
+                <h2 class="text-xl font-black mb-1">2026 Country Reward Table</h2>
+                <p class="text-xs text-slate-500 mb-4">Cash bonuses per medal, physical gifts, and non-monetary perks by NOC. All amounts in USD.</p>
+                <div id="country-table-content" class="space-y-3"></div>
+            </div>
+            <div class="px-6 pb-6">
+                <button onclick="closeModals()" class="w-full bg-slate-100 py-2 rounded-lg font-bold text-sm hover:bg-slate-200">Close</button>
+            </div>
         </div>
     </div>
 
-    <script>
-        // ESTIMATION CONSTANTS
-        const VAL = { PENSION: 250000, APT: 100000, CAR: 30000, DIAMOND: 10000 };
+<script>
+// ─── REWARDS TABLE ─────────────────────────────────────────────────────────────
+// All USD. Sources linked per entry. physical_est adds to total calc.
+const REWARDS = {
+    "USA": {
+        name:"United States", g:37500, s:22500, b:15000, fixed_bonus:200000,
+        perks:"USOPC Operation Gold Awards rank 15th of 25 surveyed nations for gold payout. All medalists receive a separate $200k Stevens Endowment retirement contribution (funded by Ross Stevens), regardless of medal color or sport. USOPC also provides continuing education grants, tuition assistance, tax consulting, financial planning, and legal aid.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Health insurance for life (USOPC); education & tuition grants; financial, tax & legal consulting",
+        source:"CNBC, Feb 2026 / USA Today Olympic bonus survey",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "NOR": {
+        name:"Norway", g:0, s:0, b:0,
+        perks:"No cash bonuses for medal finishes — despite leading the 2026 Games with 41 medals and 18 gold (a single-Games world record). Norway's philosophy invests in athlete development before competition rather than rewarding outcomes. Athletes may qualify for an annual stipend of ~$16,800 (160,000 NOK) from the Norwegian Olympic and Paralympic Committee.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Annual stipend ~$16,800 (160,000 NOK); elite training, coaching & medical services",
+        source:"Yahoo Sports / Forbes Winter Olympics 2026",
+        source_url:"https://sports.yahoo.com/olympics/article/winter-olympics-2026-how-much-do-athletes-get-paid-for-winning-medals-and-where-does-team-usa-rank-164654257.html"
+    },
+    "NED": {
+        name:"Netherlands", g:35674, s:17838, b:8920,
+        perks:"Paid by NOC*NSF (Netherlands Olympic Committee). The Netherlands had their best-ever Winter Games with 20 medals — all from skating disciplines (long track + short track). Total estimated payout across 20 medals: ~$513k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Yahoo Sports 2026",
+        source_url:"https://sports.yahoo.com/olympics/article/winter-olympics-2026-how-much-do-athletes-get-paid-for-winning-medals-and-where-does-team-usa-rank-164654257.html"
+    },
+    "ITA": {
+        name:"Italy", g:214000, s:107000, b:71000,
+        perks:"Paid by CONI (Comitato Olimpico Nazionale Italiano). As host nation, Italy paid an estimated $3.7M+ total across 30 medals — the largest national payout of the Games. Full individual amount paid per team member; no splitting for team events.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Diplomatic recognition and honorary citizenship eligibility for multiple gold medalists",
+        source:"CNBC, Feb 2026",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "GER": {
+        name:"Germany", g:35674, s:23747, b:11892,
+        perks:"Awarded in the form of Austrian Philharmonic gold coins by the DOSB (Deutscher Olympischer Sportbund). Germany had a dominant Games with 26 medals including a near-sweep of the sliding sports. Total estimated payout: ~$624k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Newsweek 2026",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "FRA": {
+        name:"France", g:80000, s:40000, b:20000,
+        perks:"Paid by the Comité National Olympique et Sportif Français (CNOSF). France had their best-ever Winter Olympics with 23 medals — dominated by an extraordinary biathlon performance (13 of 23 medals from biathlon, including all 3 relay golds for the first time in history). France hosts the 2030 Winter Olympics. Total estimated payout: ~$1.34M.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Newsweek 2026",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "SWE": {
+        name:"Sweden", g:0, s:0, b:0,
+        perks:"No direct cash bonuses. The Swedish Olympic Committee provides pre-competition funding and elite training support but explicitly does not tie financial rewards to podium results. Sweden finished 7th with 18 medals including 8 gold — their best-ever Winter Olympics by gold count.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Pre-competition athlete funding, elite training facilities & coaching support",
+        source:"Forbes / Yahoo Sports 2026",
+        source_url:"https://sports.yahoo.com/olympics/article/winter-olympics-2026-how-much-do-athletes-get-paid-for-winning-medals-and-where-does-team-usa-rank-164654257.html"
+    },
+    "SUI": {
+        name:"Switzerland", g:50000, s:30000, b:20000,
+        perks:"Paid by Swiss Olympic. Switzerland excelled in alpine skiing with 4 gold medals — all from 24-year-old Franjo von Allmen, who won 3 individual golds (downhill, super-G, team combined), joining Toni Sailer and Jean-Claude Killy in history. Total estimated payout: ~$1.17M across 23 medals.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey",
+        source_url:"https://www.usatoday.com/sports/olympics/2026/"
+    },
+    "AUT": {
+        name:"Austria", g:23747, s:20229, b:16659,
+        perks:"Awarded in the form of Austrian Philharmonic gold coins by the Austrian Olympic Committee. Austria's structure is relatively flat — bronze pays ~70% of gold. Highlights include Jan Hörl's dominance in ski jumping (2 individual golds) and Austria sweeping 3 snowboard golds. Total estimated payout: ~$364k across 18 medals.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Newsweek 2026",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "JPN": {
+        name:"Japan", g:45000, s:20000, b:10000,
+        perks:"Paid by the Japan Sports Association. Japan had their best-ever Winter Games with 24 medals — led by snowboarding (Yuto Totsuka halfpipe gold, Mari Fukada slopestyle gold) and figure skating (pairs gold). Total estimated payout: ~$340k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey",
+        source_url:"https://www.usatoday.com/sports/olympics/2026/"
+    },
+    "CAN": {
+        name:"Canada", g:18369, s:14695, b:11023,
+        perks:"Paid by the Canadian Olympic Committee / Own the Podium program. Canada's historic Games included gold in men's curling (first since Sochi 2014) and 2 gold medals in speed skating. Notably, Canada lost both hockey gold medal games to the USA in overtime. Total estimated payout: ~$215k across 21 medals.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Yahoo Sports 2026",
+        source_url:"https://sports.yahoo.com/olympics/article/winter-olympics-2026-how-much-do-athletes-get-paid-for-winning-medals-and-where-does-team-usa-rank-164654257.html"
+    },
+    "CHN": {
+        name:"China", g:0, s:0, b:0,
+        perks:"No standardized national bonus — China does not publicly disclose medal payouts. Rewards are determined at the provincial government and sports bureau level and vary widely by region, sport, and athlete profile. China's top performers included Eileen Gu (freeski halfpipe gold) and Xu Mengtao (aerials gold). Non-cash prizes such as luxury cars, apartments, and corporate sponsorships have been reported in past Games.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Provincial bonuses vary by region; reported non-cash gifts include luxury cars, apartments, and sponsor arrangements (not officially confirmed)",
+        source:"CNBC 2026 (confirmed no national standard published)",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "KOR": {
+        name:"South Korea", g:208000, s:139000, b:70000,
+        perks:"Among the highest-paying countries globally. Paid by the Korean Sport & Olympic Committee. South Korea's 10 medals came primarily from short track speed skating and snowboarding. Snowboarder Choi Ga-on (women's halfpipe gold) separately received ~$220k from her sports association on top of the national bonus. Sponsor gifts including luxury watches have also been reported.",
+        physical_est:{}, physical_gifts:{g:["Omega luxury watch (sponsor gift, est. $10–15k)"],s:["Omega luxury watch (sponsor gift)"],b:[]},
+        non_monetary:"Military service exemption for male gold medalists; provincial and sponsor bonuses vary",
+        source:"CNBC 2026 / USA Today",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "AUS": {
+        name:"Australia", g:14111, s:10587, b:7058,
+        perks:"Paid annually by the Australian Olympic Committee as a continuing support payment to fund the athlete's training into the next Olympic cycle — not a one-time bonus. Australia had a record 6 medals at 2026, surpassing their previous best of 4 from Beijing 2022. All medals came from freestyle skiing and snowboarding.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Annual training stipend paid each year until next Olympics cycle",
+        source:"USA Today Olympic bonus survey",
+        source_url:"https://www.usatoday.com/sports/olympics/2026/"
+    },
+    "GBR": {
+        name:"Great Britain", g:0, s:0, b:0,
+        perks:"No cash bonuses for medal finishes. Instead, UK Sport provides annual funding grants averaging ~£27,800/year (~$35k) per elite athlete, funded by the National Lottery. This pre-competition investment model has driven consistent podium performances. GB athletes can supplement income through endorsements significantly.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Annual UK Sport grants ~$35k/year (National Lottery funded); coaching & performance support",
+        source:"CNBC / Forbes (confirmed no direct bonus)",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "CZE": {
+        name:"Czechia", g:118000, s:59000, b:30000,
+        perks:"Paid by the Czech Olympic Committee. Czechia had a strong 2026 Games with 5 medals (2G, 2S, 1B). The gold medal figure (~$118k) places Czechia among the top tier of European paying nations. Total estimated payout: ~$296k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"Newsweek 2026 / USA Today",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "SLO": {
+        name:"Slovenia", g:163000, s:82000, b:41000,
+        perks:"Among the highest per-capita payouts in the world for a nation of ~2 million people. Paid by the Olympic Committee of Slovenia. Slovenia had an outstanding Games with 4 medals (2G, 1S, 1B) including gold in alpine skiing and ski jumping. Total estimated payout: ~$449k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"Newsweek 2026 / USA Today",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "ESP": {
+        name:"Spain", g:112000, s:56000, b:28000,
+        perks:"Paid by the Consejo Superior de Deportes (Spain's government sports body). Spain had a historic 2026 Games, winning their first Winter Olympic gold since 1972 when ski mountaineer Orio Cardona Coll won the men's sprint — the debut of the new discipline. Ana Alonso Rodriguez won bronze in the women's sprint less than 5 months after being hit by a car.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"Newsweek 2026 / USA Today",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "BRA": {
+        name:"Brazil", g:20000, s:10000, b:5000,
+        perks:"Paid by the Brazilian Olympic Committee (COB). Brazil made Winter Olympic history at 2026, winning their first-ever Winter Games medal — and it was gold. Lucas Pinheiro Braathen won the men's giant slalom to become the first South American ever to win a Winter Olympic medal of any colour. The exact bonus is estimated; COB has not published a formal structure. Significant national sponsorship and media opportunities are likely to follow.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"National hero recognition; significant sponsorship & endorsement opportunities following historic first medal",
+        source:"Estimated — COB has not published a formal bonus structure",
+        source_url:"https://www.olympics.com/en/athletes/lucas-pinheiro-braathen"
+    },
+    "KAZ": {
+        name:"Kazakhstan", g:250000, s:150000, b:75000,
+        perks:"Combines cash with state-provided physical assets. Apartments are awarded based on medal rank and provided through government housing programs. Kazakhstan's only 2026 medal was figure skater Mikhail Shaidorov's gold — only the second Olympic figure skating medal in Kazakhstan's history (after the late Denis Ten in 2014).",
+        physical_est:{g:100000,s:75000,b:50000},
+        physical_gifts:{g:["State-provided apartment (~$100k est. value)"],s:["State-provided apartment (~$75k est. value)"],b:["State-provided apartment (~$50k est. value)"]},
+        non_monetary:"",
+        source:"CNBC / Forbes historical data",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    },
+    "POL": {
+        name:"Poland", g:211000, s:169000, b:124000,
+        perks:"One of the most comprehensive reward packages in the world. Gold medalists receive cash plus a Toyota Corolla, a fully furnished 2-room apartment, a commemorative painting, a holiday voucher, and jewelry. Silver and bronze also include a painting and jewelry alongside their cash. Poland also pays bonuses for 4th–8th place finishes — one of very few countries to do so. At 2026, Poland won 0 gold medals, so the full physical gift package was not triggered this year.",
+        physical_est:{g:140000,s:10000,b:10000},
+        physical_gifts:{
+            g:["Toyota Corolla (~$30k)","Fully furnished 2-room apartment (~$100k)","Commemorative painting","Holiday voucher","Jewelry (diamond)"],
+            s:["Commemorative painting","Jewelry"],
+            b:["Commemorative painting","Jewelry"]
+        },
+        non_monetary:"Bonuses also awarded for 4th–8th place finishes",
+        source:"USA Today / Newsweek 2026",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "NZL": {
+        name:"New Zealand", g:3018, s:1811, b:1207,
+        perks:"Paid as an annual training stipend (not a one-time bonus) by Sport New Zealand / the NZOC to fund preparation for the next Games. At 2026, New Zealand won 3 medals — all in snowboarding — led by Zoi Sadowski-Synnott's silver in women's slopestyle (her second Olympic medal, having won gold at Beijing 2022). Per Forbes, NZL does not offer traditional direct monetary bonuses.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Annual athlete development funding through next Olympic cycle",
+        source:"Forbes / Sport New Zealand",
+        source_url:"https://www.forbes.com/sites/brettknight/2021/07/31/these-10-countries-offer-six-figure-payouts-to-their-olympic-medalists/"
+    },
+    "FIN": {
+        name:"Finland", g:59385, s:35621, b:23747,
+        perks:"Paid by the Finnish Olympic Committee. Finland had 6 medals at 2026 (0G, 1S, 5B) despite being a traditional winter sports powerhouse. The silver came from biathlon's Suvi Minkkinen (women's pursuit). Despite being a dominant force in Nordic sports historically, Finland's modest bonus structure has not prevented competitive performances. Total estimated payout: ~$154k.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey / Newsweek 2026",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "LAT": {
+        name:"Latvia", g:155000, s:93000, b:56000,
+        perks:"Latvia uses a sliding scale: each lower tier is ~60% of the previous, extending all the way down to 6th place — one of very few countries compensating athletes beyond the podium. For team events, a lump sum is shared among all competitors and coaches. Latvia's 2026 medals came from luge (Elina Bota, women's singles silver) and short track speed skating (men's 1500m bronze).",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Performance bonuses also paid down to 6th place finish",
+        source:"GiveMeSport / BossHunting (2024 bonus data)",
+        source_url:"https://www.givemesport.com/olympic-medal-prize-money-every-country/"
+    },
+    "DEN": {
+        name:"Denmark", g:15933, s:11950, b:7965,
+        perks:"Paid by the Danish Sports Confederation (DIF). Denmark won 1 medal at 2026 — Viktor Hald Thorup's silver in men's speed skating, the last new medal added to the national tally on the final weekend of competition.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"USA Today Olympic bonus survey",
+        source_url:"https://www.usatoday.com/sports/olympics/2026/"
+    },
+    "EST": {
+        name:"Estonia", g:119000, s:60000, b:30000,
+        perks:"Paid by the Estonian Olympic Committee. Gold medalists additionally receive €7,000/month for two years post-Games (~$150k total additional value). Coaches are also eligible for bonuses, capped at half the athlete's amount. Estonia's sole 2026 medal was Henry Sildaru's silver in men's freeski halfpipe.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Monthly payments of ~$7,500/month for two years post-Games; coaches also receive performance bonuses",
+        source:"Newsweek 2026 / USA Today",
+        source_url:"https://www.newsweek.com/sports/how-much-country-awards-athletes-winning-winter-olympics-medals-11535097"
+    },
+    "GEO": {
+        name:"Georgia", g:100000, s:50000, b:25000,
+        perks:"Paid by the Georgian National Olympic Committee. Georgia won its first-ever Winter Olympic medal at 2026 — a silver in figure skating pairs (Anastasiia Metelkina & Luka Berulava), making this one of the most historically significant moments in Georgian sport. The exact bonus structure is not formally published; figure is estimated from general NOC policies.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"National heroes recognition; significant media and government attention for first-ever Winter Olympic medalists",
+        source:"Estimated — Georgian NOC has not published a full formal structure",
+        source_url:"https://www.olympics.com/en/athletes/"
+    },
+    "BUL": {
+        name:"Bulgaria", g:139000, s:110000, b:83000,
+        perks:"Individual athletes receive the full amount. For team events, the structure is tiered: 70% of the team receives 90% of the individual bonus, and the remaining 30% receive 50%. Bulgaria's 2 bronze medals at 2026 came from snowboard parallel giant slalom (Tervel Zamfirov) and one other event.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"",
+        source:"GiveMeSport / BossHunting (2024 bonus data)",
+        source_url:"https://www.givemesport.com/olympic-medal-prize-money-every-country/"
+    },
+    "BEL": {
+        name:"Belgium", g:59385, s:35621, b:23747,
+        perks:"Paid by the Belgian Olympic and Interfederal Committee (BOIC). Belgium is one of only a handful of countries that also pays bonuses for 4th–8th place finishes. Belgium won 1 bronze medal at 2026.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Performance bonuses also paid for 4th–8th place finishes",
+        source:"USA Today Olympic bonus survey",
+        source_url:"https://www.usatoday.com/sports/olympics/2026/"
+    },
+    "HKG": {
+        name:"Hong Kong", g:768000, s:384000, b:192000,
+        perks:"Second-highest payout in the world after Singapore. Paid by the Hong Kong Sports Institute. HKG did not win medals at 2026 but maintains one of the most generous rate cards globally. ~$100k is also paid for 4th place finishes.",
+        physical_est:{}, physical_gifts:{g:[],s:[],b:[]},
+        non_monetary:"Lifetime public transport pass for medalists",
+        source:"CNBC 2026",
+        source_url:"https://www.cnbc.com/2026/02/16/2026-winter-olympics-medal-bonus-payouts-by-country-athletes-milano-cortina.html"
+    }
+};
 
-        // DATA: COUNTRY REWARD SYSTEM
-        const REWARDS = {
-            "POL": { name: "Poland", g: 355000, s: 142500, b: 107000, perks: "Gold: 2-room Apt ($100k) + Diamond + Painting + Car ($30k).", physical_est: { g: 140000, s: 30000, b: 0 }, non_monetary: "Gold: Holiday Voucher" },
-            "HKG": { name: "Hong Kong", g: 768000, s: 384000, b: 192000, perks: "Highest cash in the world.", physical_est: {}, non_monetary: "Lifetime transport pass" },
-            "ITA": { name: "Italy", g: 212000, s: 106000, b: 71000, perks: "Cash paid directly by CONI.", physical_est: {}, non_monetary: "Diplomatic recognition" },
-            "USA": { name: "United States", g: 37500, s: 22500, b: 15000, perks: "Plus $200k Stevens Endowment for any medal.", physical_est: {}, non_monetary: "Health insurance for life", fixed_bonus: 200000 },
-            "KOR": { name: "South Korea", g: 45000, s: 25000, b: 18000, perks: "Monthly pension (~$250k PV).", physical_est: { g: 250000, s: 150000, b: 100000 }, non_monetary: "Military service exemption" },
-            "KAZ": { name: "Kazakhstan", g: 250000, s: 150000, b: 75000, perks: "Apartment based on medal rank.", physical_est: { g: 100000, s: 75000, b: 50000 }, non_monetary: "" },
-            "NOR": { name: "Norway", g: 0, s: 0, b: 0, perks: "Stipends only.", physical_est: {}, non_monetary: "Elite training access" }
-        };
+// ─── ATHLETES ──────────────────────────────────────────────────────────────────
+// isTeam: true    → collapsed row, expand to show teamMembers
+// size            → number of members (for per-capita total display)
+// teamMembers     → array of names shown in expanded modal
+// source/url      → shown as footnote in modal
+const ATHLETES = [
+    // ══ USA ══════════════════════════════════════════════════════════════════
+    { id:1, name:"Breezy Johnson", country:"USA", g:1,s:0,b:0, sport:"Alpine Skiing", events:["Women's Downhill"], source:"CBS News / NBC Olympics", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:2, name:"Mikaela Shiffrin", country:"USA", g:1,s:1,b:0, sport:"Alpine Skiing", events:["Women's Slalom (G)","Women's Combined (S)"], source:"CBS News / NBC Olympics", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:3, name:"Elizabeth Lemley", country:"USA", g:1,s:0,b:1, sport:"Freestyle Skiing", events:["Women's Moguls (G)","Women's Dual Moguls (B)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:4, name:"Jordan Stolz", country:"USA", g:2,s:1,b:0, sport:"Speed Skating", events:["Men's 1000m (G, OR)","Men's 500m (G, OR)","Men's 1500m (S)"], source:"CBS News / NPR", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:5, name:"Elana Meyers Taylor", country:"USA", g:1,s:0,b:0, sport:"Bobsled", events:["Women's Monobob"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:6, name:"Alysa Liu", country:"USA", g:1,s:0,b:0, sport:"Figure Skating", events:["Women's Singles"], source:"CBS News / NBC Olympics", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:7, name:"Jaelin Kauf", country:"USA", g:0,s:2,b:0, sport:"Freestyle Skiing", events:["Women's Moguls (S)","Women's Dual Moguls (S)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:8, name:"Ben Ogden", country:"USA", g:0,s:1,b:0, sport:"Cross-Country Skiing", events:["Men's Sprint Classic (S)"], note:"First US men's XC medal since 1976", source:"CBS News / NPR", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:9, name:"Mac Forehand", country:"USA", g:0,s:1,b:0, sport:"Freestyle Skiing", events:["Men's Freeski Big Air (S)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:10, name:"Chloe Kim", country:"USA", g:0,s:1,b:0, sport:"Snowboard", events:["Women's Halfpipe (S)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:11, name:"Jake Canter", country:"USA", g:0,s:0,b:1, sport:"Snowboard", events:["Men's Slopestyle (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:12, name:"Jessie Diggins", country:"USA", g:0,s:0,b:1, sport:"Cross-Country Skiing", events:["Women's 10km Interval Start Free (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:13, name:"Ashley Farquharson", country:"USA", g:0,s:0,b:1, sport:"Luge", events:["Women's Singles (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:14, name:"Mia Manganello", country:"USA", g:0,s:0,b:1, sport:"Speed Skating", events:["Women's Mass Start (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:15, name:"Corinne Stoddard", country:"USA", g:0,s:0,b:1, sport:"Short Track Speed Skating", events:["Women's 1500m (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    // USA team events
+    { id:16, name:"USA Figure Skating Team", country:"USA", isTeam:true, size:6, teamMembers:["Ilia Malinin","Madison Chock","Evan Bates","Alysa Liu","(Men's pairs representative)","(Ice dance team)"], g:1,s:0,b:0, sport:"Figure Skating", events:["Team Event (G)"], note:"Alysa Liu also listed individually for Women's Singles gold. Team event roster is approximate — confirm full team at olympics.com.", source:"CBS News / NBC Olympics", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:17, name:"USA Women's Ice Hockey", country:"USA", isTeam:true, size:23, teamMembers:["Megan Keller (OT winner)","+ full 22-player roster — see olympics.com"], g:1,s:0,b:0, sport:"Ice Hockey", events:["Women's Gold Medal Game vs Canada (2-1 OT)"], note:"Megan Keller scored the overtime winner.", source:"CBS News / NBC Olympics", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:18, name:"USA Men's Ice Hockey", country:"USA", isTeam:true, size:23, teamMembers:["Jack Hughes (OT winner)","Quinn Hughes","Brady Tkachuk","Connor Hellebuyck (G)","+ full roster — see olympics.com"], g:1,s:0,b:0, sport:"Ice Hockey", events:["Men's Gold Medal Game vs Canada (2-1 OT)"], note:"Jack Hughes scored at 1:41 of OT. First US men's hockey gold since 1980 — 46 years to the day.", source:"CBS News / ESPN", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:19, name:"USA Mixed Curling", country:"USA", isTeam:true, size:4, teamMembers:["Confirm roster at olympics.com"], g:0,s:1,b:0, sport:"Curling", events:["Mixed Doubles (S)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:20, name:"USA Speed Skating Team Pursuit", country:"USA", isTeam:true, size:4, teamMembers:["Confirm roster at olympics.com"], g:0,s:1,b:0, sport:"Speed Skating", events:["Men's Team Pursuit (S)"], source:"CBS News", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+    { id:21, name:"USA Alpine Team Combined (W)", country:"USA", isTeam:true, size:2, teamMembers:["Paula Moltzan","Jacqueline Wiles"], g:0,s:0,b:1, sport:"Alpine Skiing", events:["Women's Team Combined (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:22, name:"USA Women's Bobsled", country:"USA", isTeam:true, size:2, teamMembers:["Jasmine Jones","Kaillie Humphries"], g:0,s:0,b:1, sport:"Bobsled", events:["2-Woman Bobsled (B)"], source:"NBC Olympics", source_url:"https://www.nbcolympics.com/" },
+    { id:23, name:"USA Mixed Team Aerials", country:"USA", isTeam:true, size:3, teamMembers:["Confirm roster at olympics.com — Kuhn / Curran / Lillis reported"], g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Mixed Team Aerials (G)"], note:"This was Team USA's 11th gold of the Games.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
 
-        // DATA: CUMULATIVE ATHLETE RESULTS
-        const ATHLETES = [
-            { id: 1, name: "Ilia Malinin", country: "USA", g: 2, s: 0, b: 0, sport: "Figure Skating", events: ["Men's Singles", "Team Event"] },
-            { id: 2, name: "Julia Szeremeta", country: "POL", g: 1, s: 0, b: 0, sport: "Boxing (Winter Edition)", events: ["Exhibition Gold"] },
-            { id: 3, name: "Arianna Fontana", country: "ITA", g: 1, s: 1, b: 1, sport: "Short Track", events: ["500m", "1500m", "Relay"] },
-            { id: 4, name: "South Korea Men's Team", country: "KOR", isTeam: true, size: 4, g: 1, s: 0, b: 0, sport: "Short Track", events: ["5000m Relay"] },
-            { id: 5, name: "Marco Odermatt", country: "SUI", g: 2, s: 0, b: 0, sport: "Alpine Skiing", events: ["Giant Slalom", "Downhill"] },
-            { id: 6, name: "Mikaela Shiffrin", country: "USA", g: 1, s: 1, b: 0, sport: "Alpine Skiing", events: ["Slalom", "Combined"] },
-            { id: 7, name: "Johannes Thingnes Bø", country: "NOR", g: 3, s: 1, b: 0, sport: "Biathlon", events: ["Sprint", "Pursuit", "Individual", "Relay"] },
-            { id: 8, name: "Cheung Ka Long", country: "HKG", g: 1, s: 0, b: 0, sport: "Fencing (Winter)", events: ["Individual Foil"] },
-            { id: 9, name: "USA Women's Hockey", country: "USA", isTeam: true, size: 23, g: 1, s: 0, b: 0, sport: "Ice Hockey", events: ["Tournament Gold"] }
-        ];
+    // ══ NORWAY ════════════════════════════════════════════════════════════════
+    { id:50, name:"Johannes Høsflot Klæbo", country:"NOR", g:6,s:0,b:0, sport:"Cross-Country Skiing", events:["Skiathlon (G)","Sprint Classic (G)","15km (G)","Team Sprint (G)","4x10km Relay (G)","50km (G)"], note:"All-time record: most golds at a single Winter Olympics (any sport). Also holds most career Winter gold medals (11).", source:"theworlddata.com / CBS News", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:51, name:"Sturla Holm Lægreid", country:"NOR", g:1,s:0,b:0, sport:"Biathlon", events:["Men's 12.5km Pursuit (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:52, name:"Maren Kirkeeide", country:"NOR", g:1,s:0,b:0, sport:"Biathlon", events:["Women's 7.5km Sprint (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:53, name:"Johan-Olav Botn", country:"NOR", g:1,s:0,b:0, sport:"Biathlon", events:["Men's 20km Individual (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:54, name:"Johannes Dale-Skjevdal", country:"NOR", g:1,s:0,b:0, sport:"Biathlon", events:["Men's 15km Mass Start (G)"], source:"theworlddata.com / olympics.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:55, name:"Jens Luraas Oftebro", country:"NOR", g:3,s:0,b:0, sport:"Nordic Combined", events:["Individual Gundersen Normal Hill (G)","Individual Gundersen Large Hill (G)","Team Sprint (G)"], note:"Owns all 3 Olympic Nordic Combined titles in his career.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:56, name:"Anna Odine Strøm", country:"NOR", g:2,s:1,b:0, sport:"Freestyle Skiing", events:["Women's Freeski Slopestyle (G)","Women's Freeski Big Air (G)","Men's Freeski Big Air (S)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:57, name:"NOR Biathlon Men's Relay", country:"NOR", isTeam:true, size:4, teamMembers:["Confirm relay team at olympics.com"], g:0,s:1,b:0, sport:"Biathlon", events:["Men's 4×7.5km Relay (S)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:58, name:"NOR Cross-Country Women's Relay", country:"NOR", isTeam:true, size:4, teamMembers:["Confirm relay team at olympics.com"], g:1,s:0,b:0, sport:"Cross-Country Skiing", events:["Women's 4x5km Relay (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:59, name:"NOR Ski Jumping Team", country:"NOR", isTeam:true, size:4, teamMembers:["Confirm team at olympics.com"], g:1,s:0,b:0, sport:"Ski Jumping", events:["Men's Team (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    // Norway has many more medal-winning athletes across 41 total medals — key individuals listed above
 
-        let currentFilter = 'all';
+    // ══ NETHERLANDS ══════════════════════════════════════════════════════════
+    { id:70, name:"Jens van 't Wout", country:"NED", g:3,s:0,b:1, sport:"Short Track Speed Skating", events:["Men's 1000m (G)","Men's 1500m (G)","Men's 5000m Relay (G)","Men's 500m (B)"], note:"Stood on podium with brother Melle — both medalling in the same event.", source:"CNN Feb 18 / theworlddata.com", source_url:"https://www.cnn.com/sport/live-news/milan-winter-olympics-results-highlights-medals-02-18-26" },
+    { id:71, name:"Xandra Velzeboer", country:"NED", g:2,s:0,b:1, sport:"Short Track Speed Skating", events:["Women's 500m (G, WR 41.399s)","Women's 1000m (G)","Women's 3000m Relay (G — listed separately)"], source:"theworlddata.com / CNN", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:72, name:"Jutta Leerdam", country:"NED", g:1,s:0,b:0, sport:"Speed Skating", events:["Women's 1000m (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:73, name:"Antoinette Rijpma-de Jong", country:"NED", g:1,s:0,b:0, sport:"Speed Skating", events:["Women's 1500m (G)"], note:"Sixth Olympic medal, first gold. Netherlands have won this event at every Olympics since Vancouver 2010.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:74, name:"Jorrit Bergsma", country:"NED", g:1,s:0,b:0, sport:"Speed Skating", events:["Men's 10,000m (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    // Netherlands has 20 total medals — key athletes listed
 
-        function calc(a) {
-            const r = REWARDS[a.country] || { g: 0, s: 0, b: 0, fixed_bonus: 0, physical_est: {} };
-            const cash = (a.g * r.g) + (a.s * r.s) + (a.b * r.b);
-            const physical = (a.g * (r.physical_est?.g || 0)) + (a.s * (r.physical_est?.s || 0)) + (a.b * (r.physical_est?.b || 0));
-            const fixed = (a.g > 0 || a.s > 0 || a.b > 0) ? (r.fixed_bonus || 0) : 0;
-            return { total: cash + physical + fixed, cash, physical, non_monetary: r.non_monetary };
-        }
+    // ══ ITALY ═════════════════════════════════════════════════════════════════
+    { id:80, name:"Federica Brignone", country:"ITA", g:2,s:0,b:0, sport:"Alpine Skiing", events:["Women's Super-G (G)","Women's Giant Slalom (G)"], note:"Won on home snow in Cortina, 10 months after breaking her leg.", source:"theworlddata.com / olympics.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:81, name:"Lisa Vittozzi", country:"ITA", g:1,s:1,b:0, sport:"Biathlon", events:["Women's Pursuit (G, 20/20 shooting)","Mixed Relay (S)"], source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/imprese-emozioni-e-record-il-meglio-dei-giochi-olimpici-invernali-di-milano-cortina-2026" },
+    { id:82, name:"Arianna Fontana", country:"ITA", g:0,s:1,b:0, sport:"Short Track Speed Skating", events:["Women's 3000m Relay (S)"], note:"Her 14th career Olympic medal — the most ever by an Italian athlete, surpassing Edoardo Mangiarotti's record.", source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/imprese-emozioni-e-record-il-meglio-dei-giochi-olimpici-invernali-di-milano-cortina-2026" },
+    { id:83, name:"Simone Deromedis", country:"ITA", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Men's Ski Cross (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:84, name:"Francesca Lollobrigida", country:"ITA", g:2,s:0,b:0, sport:"Speed Skating", events:["Women's 3000m (G, OR)","Women's 5000m (G)"], note:"Set an Olympic record in the 3000m.", source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/imprese-emozioni-e-record-il-meglio-dei-giochi-olimpici-invernali-di-milano-cortina-2026" },
+    { id:85, name:"ITA Alpine Women's Team Combined", country:"ITA", isTeam:true, size:4, teamMembers:["Confirm team roster at olympics.com"], g:1,s:0,b:0, sport:"Alpine Skiing", events:["Women's Team Combined (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:86, name:"ITA Speed Skating Men's Team Pursuit", country:"ITA", isTeam:true, size:4, teamMembers:["Davide Ghiotto","Nicola Giovannini","Michele Malfatti","(4th rider — confirm at olympics.com)"], g:1,s:0,b:0, sport:"Speed Skating", events:["Men's Team Pursuit (G)"], note:"Italy's first men's team pursuit gold since Turin 2006.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    // Italy has 30 total medals — key athletes listed
 
-        function render() {
-            const search = document.getElementById('search').value.toLowerCase();
-            const usaTotal = ATHLETES.filter(a => a.country === 'USA').reduce((sum, a) => sum + (calc(a).total * (a.isTeam ? a.size : 1)), 0);
-            document.getElementById('usa-total-header').innerText = `$${usaTotal.toLocaleString()}`;
+    // ══ GERMANY ═══════════════════════════════════════════════════════════════
+    { id:90, name:"Johannes Lochner", country:"GER", g:2,s:0,b:0, sport:"Bobsled", events:["Men's Two-Man (G)","Men's Four-Man (G)"], note:"Denied Francesco Friedrich a historic three-peat in the two-man.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:91, name:"GER Women's Bobsled", country:"GER", isTeam:true, size:2, teamMembers:["Confirm roster at olympics.com"], g:1,s:0,b:0, sport:"Bobsled", events:["Women's Two-Man (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:92, name:"GER Women's Ski Jumping", country:"GER", g:2,s:0,b:0, sport:"Ski Jumping", events:["Women's Normal Hill (G)","Women's Large Hill Debut (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    // Germany has 26 medals — key athletes listed
 
-            const filtered = ATHLETES.filter(a => {
-                const results = calc(a);
-                const matchesSearch = a.name.toLowerCase().includes(search) || a.country.toLowerCase().includes(search);
-                if (currentFilter === 'usa') return matchesSearch && a.country === 'USA';
-                if (currentFilter === 'physical') return matchesSearch && results.physical > 0;
-                if (currentFilter === 'non-physical') return matchesSearch && results.non_monetary !== "";
-                return matchesSearch;
-            }).sort((a, b) => calc(b).total - calc(a).total);
+    // ══ FRANCE ════════════════════════════════════════════════════════════════
+    { id:100, name:"Quentin Fillon Maillet", country:"FRA", g:3,s:0,b:1, sport:"Biathlon", events:["Men's Sprint (G)","Mixed Relay (G)","Men's Relay (G)","Men's Mass Start (B)"], note:"Most decorated French Winter Olympian of all time.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:101, name:"Julia Simon", country:"FRA", g:3,s:1,b:0, sport:"Biathlon", events:["Women's Individual (G)","Mixed Relay (G)","Women's Relay (G)","Women's Mass Start (S)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:102, name:"Lou Jeanmonnot", country:"FRA", g:2,s:1,b:1, sport:"Biathlon", events:["Mixed Relay (G)","Women's Relay (G)","Women's Individual (S)","Men's Relay (B — TBC)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:103, name:"Océane Michelon", country:"FRA", g:1,s:0,b:0, sport:"Biathlon", events:["Women's Mass Start (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:104, name:"FRA Ice Dance", country:"FRA", isTeam:true, size:2, teamMembers:["Laurence Fournier Beaudry","Guillaume Cizeron"], g:1,s:0,b:0, sport:"Figure Skating", events:["Ice Dance (G)"], note:"Personal best 225.82. Cizeron is a repeat Olympic ice dance champion.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:105, name:"FRA Men's Dual Moguls", country:"FRA", isTeam:true, size:2, teamMembers:["Confirm roster at olympics.com"], g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Men's Dual Moguls (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:106, name:"FRA Women's Dual Moguls", country:"FRA", isTeam:true, size:2, teamMembers:["Confirm roster at olympics.com"], g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Women's Dual Moguls (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:107, name:"FRA SkiMo Mixed Relay", country:"FRA", isTeam:true, size:2, teamMembers:["Emily Harrop","Thibault Anselmet"], g:1,s:0,b:0, sport:"Ski Mountaineering", events:["Mixed Relay (G) — Olympic debut event"], note:"First-ever Olympic gold in ski mountaineering mixed relay.", source:"theworlddata.com / olympics.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
 
-            const body = document.getElementById('leaderboard-body');
-            body.innerHTML = filtered.map((a, i) => {
-                const res = calc(a);
-                return `
-                <tr onclick="showDetails(${a.id})" class="${a.country === 'USA' ? 'bg-blue-50' : 'border-b border-slate-100'}">
-                    <td class="p-4">
-                        <div class="font-bold">#${i + 1} ${a.name}</div>
-                        <div class="text-[10px] text-slate-400 uppercase tracking-tighter">${a.sport}</div>
-                    </td>
-                    <td class="p-4 font-semibold text-slate-600">${a.country}</td>
-                    <td class="p-4">
-                        <div class="flex gap-1">
-                            ${a.g ? `<span class="w-3 h-3 rounded-full bg-yellow-400 border border-yellow-500"></span>`.repeat(a.g) : ''}
-                            ${a.s ? `<span class="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"></span>`.repeat(a.s) : ''}
-                            ${a.b ? `<span class="w-3 h-3 rounded-full bg-orange-400 border border-orange-500"></span>`.repeat(a.b) : ''}
-                        </div>
-                    </td>
-                    <td class="p-4 text-right money">$${res.total.toLocaleString()} ${a.isTeam ? `<div class="text-[8px] text-slate-400 uppercase">Per Member</div>` : ''}</td>
-                </tr>`;
-            }).join('');
-        }
+    // ══ SWEDEN ════════════════════════════════════════════════════════════════
+    { id:110, name:"Frida Karlsson", country:"SWE", g:1,s:0,b:0, sport:"Cross-Country Skiing", events:["Women's Skiathlon 15km (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:111, name:"Ebba Andersson", country:"SWE", g:1,s:3,b:0, sport:"Cross-Country Skiing", events:["Women's 50km (G)","(3 silvers — confirm events at olympics.com)"], note:"Won by 2 min 15.3 sec — dominant performance in the final ski event of the Games.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:112, name:"Walter Wallberg", country:"SWE", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Men's Moguls (G)"], note:"Defended his Olympic title from Beijing 2022.", source:"olympics.com / NBC Olympics", source_url:"https://www.nbcolympics.com/news/boosted-three-consecutive-gold-medal-days-australia-sets-nations-winter-olympics-record" },
+    { id:113, name:"SWE Women's Curling", country:"SWE", isTeam:true, size:4, teamMembers:["Anna Hasselborg (skip)","Confirm full team at olympics.com"], g:1,s:0,b:0, sport:"Curling", events:["Women's Curling (G) — 6-5 vs Switzerland in final"], note:"Hasselborg becomes only 2nd woman to win two Olympic curling titles as skip.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:114, name:"SWE Mixed Doubles Curling", country:"SWE", isTeam:true, size:2, teamMembers:["Confirm pair at olympics.com"], g:1,s:0,b:0, sport:"Curling", events:["Mixed Doubles (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:115, name:"SWE Women's Team Sprint XC", country:"SWE", isTeam:true, size:2, teamMembers:["Jonna Sundling","Maja Dahlqvist"], g:1,s:0,b:0, sport:"Cross-Country Skiing", events:["Women's Team Sprint (G)"], note:"Upgraded their silver from Beijing 2022 to gold.", source:"olympics.com Feb 18 daily report", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-highlights-daily-results-milano-cortina-18-february" },
 
-        function showDetails(id) {
-            const a = ATHLETES.find(x => x.id === id);
-            const r = REWARDS[a.country];
+    // ══ SWITZERLAND ═══════════════════════════════════════════════════════════
+    { id:120, name:"Franjo von Allmen", country:"SUI", g:3,s:0,b:0, sport:"Alpine Skiing", events:["Men's Downhill (G)","Men's Super-G (G)","Men's Team Combined (G)"], note:"24 years old. Joins Toni Sailer (1956) and Jean-Claude Killy (1968) as only male skiers to win 3 alpine golds at a single Olympics.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:121, name:"Loïc Meillard", country:"SUI", g:1,s:1,b:1, sport:"Alpine Skiing", events:["Men's Slalom (G)","(1S, 1B — confirm events at olympics.com)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ AUSTRIA ═══════════════════════════════════════════════════════════════
+    { id:130, name:"Jan Hörl", country:"AUT", g:2,s:0,b:0, sport:"Ski Jumping", events:["Men's Normal Hill (G)","Men's Large Hill (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:131, name:"AUT Ski Jumping Super Team", country:"AUT", isTeam:true, size:2, teamMembers:["Jan Hörl","Confirm partner at olympics.com"], g:1,s:0,b:0, sport:"Ski Jumping", events:["Men's Super Team (G) — new event debut"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:132, name:"Alessandro Hämmerle", country:"AUT", g:1,s:0,b:0, sport:"Snowboard", events:["Men's Snowboard Cross (G)"], note:"Defending Olympic champion — retained his title from Beijing 2022. Shared the closing ceremony flagbearer role for Austria.", source:"NBC Olympics / olympics.com", source_url:"https://www.nbcolympics.com/news/olympic-snowboarding-milan-cortina-2026-biggest-stories-highlights-replays-medal-results-and-top-athletes" },
+    { id:133, name:"Benjamin Karl", country:"AUT", g:1,s:0,b:0, sport:"Snowboard", events:["Men's Parallel Giant Slalom (G)"], note:"Won at age 40 — the oldest Olympic snowboarding gold medalist ever. Defending his PGS title from Beijing 2022.", source:"NBC Olympics / olympics.com", source_url:"https://www.nbcolympics.com/news/olympic-snowboarding-milan-cortina-2026-biggest-stories-highlights-replays-medal-results-and-top-athletes" },
+
+    // ══ JAPAN ═════════════════════════════════════════════════════════════════
+    { id:140, name:"Yuto Totsuka", country:"JPN", g:1,s:0,b:0, sport:"Snowboard", events:["Men's Halfpipe (G)"], note:"Score 95.00 on second run, denying Scotty James.", source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/history-makers-breakthrough-stars-highlights-australia-most-successful-winter-olympics-ever" },
+    { id:141, name:"Mari Fukada", country:"JPN", g:1,s:0,b:0, sport:"Snowboard", events:["Women's Slopestyle (G)"], note:"19 years old, first Olympics.", source:"olympics.com Feb 18 report", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-highlights-daily-results-milano-cortina-18-february" },
+    { id:142, name:"Xu Mengtao", country:"CHN", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Women's Aerials (G)"], note:"First athlete to win two Olympic aerials golds. 35 years old, 5th Olympics. One of the greatest aerialists in history.", source:"olympics.com Feb 18 daily report", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-highlights-daily-results-milano-cortina-18-february" },
+    { id:1421, name:"Eileen Gu", country:"CHN", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Women's Freeski Halfpipe (G)"], note:"6th career Olympic medal — most decorated freeskier in Olympic history. Won on her final run, score 94.75.", source:"theworlddata.com / olympics.com Feb 18", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:143, name:"JPN Figure Skating Pairs", country:"JPN", isTeam:true, size:2, teamMembers:["Riku Miura","Ryuichi Kihara"], g:1,s:0,b:0, sport:"Figure Skating", events:["Pairs (G)"], note:"Japan's first-ever Olympic gold in pairs figure skating. Came from 5th after the short program.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:144, name:"Kokomo Murase", country:"JPN", g:1,s:0,b:1, sport:"Snowboard", events:["Women's Big Air (G)","Women's Slopestyle (B)"], note:"Won the big air gold on her final jump, leapfrogging Zoi Sadowski-Synnott at the last moment. Her second Olympic gold medal.", source:"olympics.com / NBC Olympics", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-world-champion-murase-kokomo-clinches-women-s-snowboard-big-air-gold-medal" },
+
+    // ══ CANADA ════════════════════════════════════════════════════════════════
+    { id:150, name:"Steven Dubois", country:"CAN", g:1,s:0,b:0, sport:"Short Track Speed Skating", events:["Men's 500m (G)"], source:"CNN Feb 18", source_url:"https://www.cnn.com/sport/live-news/milan-winter-olympics-results-highlights-medals-02-18-26" },
+    { id:151, name:"CAN Men's Curling", country:"CAN", isTeam:true, size:4, teamMembers:["Confirm team at olympics.com"], g:1,s:0,b:0, sport:"Curling", events:["Men's Curling (G) — beat Great Britain 9-6 in final"], note:"Canada's first men's curling gold since Sochi 2014.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:152, name:"CAN Women's Speed Skating Team Pursuit", country:"CAN", isTeam:true, size:4, teamMembers:["Ivanie Blondin","Valérie Maltais","Isabelle Weidemann","(4th rider — confirm at olympics.com)"], g:1,s:0,b:0, sport:"Speed Skating", events:["Women's Team Pursuit (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:153, name:"CAN Women's Speed Skating Mass Start", country:"CAN", g:1,s:0,b:0, sport:"Speed Skating", events:["Women's Mass Start (G)"], note:"Confirm athlete name at olympics.com.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:154, name:"CAN Ice Hockey (M & W silver)", country:"CAN", isTeam:true, size:23, teamMembers:["Nathan MacKinnon","Connor McDavid","Sidney Crosby","+ full roster — see olympics.com"], g:0,s:2,b:0, sport:"Ice Hockey", events:["Men's Gold Medal (S) — lost 2-1 OT to USA","Women's Gold Medal (S) — lost 2-1 OT to USA"], note:"Canada lost both hockey finals to the USA in overtime — an unprecedented result.", source:"CBS News / ESPN", source_url:"https://www.cbsnews.com/news/olympic-medal-count-2026-winter-games/" },
+
+    // ══ CHINA ═════════════════════════════════════════════════════════════════
+    { id:162, name:"Su Yiming", country:"CHN", g:1,s:0,b:0, sport:"Snowboard", events:["Men's Slopestyle (G)"], note:"Won on his 22nd birthday.", source:"CNN Feb 18", source_url:"https://www.cnn.com/sport/live-news/milan-winter-olympics-results-highlights-medals-02-18-26" },
+    { id:163, name:"Cai Xuetong", country:"CHN", g:1,s:0,b:0, sport:"Snowboard", events:["Women's Halfpipe (G)"], source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:164, name:"CHN Short Track Mixed Relay", country:"CHN", isTeam:true, size:4, teamMembers:["Confirm roster at olympics.com"], g:1,s:0,b:0, sport:"Short Track Speed Skating", events:["Mixed Team Relay (G)"], note:"China retained the mixed relay title from Beijing 2022.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ SOUTH KOREA ═══════════════════════════════════════════════════════════
+    { id:170, name:"Choi Ga-on", country:"KOR", g:1,s:0,b:0, sport:"Snowboard", events:["Women's Snowboard Halfpipe (G)"], note:"Age 17. Received additional ~$220k from her sports association on top of the national bonus.", source:"olympics.com official results / theworlddata.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:172, name:"Kim Gilli", country:"KOR", g:1,s:0,b:1, sport:"Short Track Speed Skating", events:["Women's 1500m (G)","Women's 1000m (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:173, name:"Korea Women's Short Track 3000m Relay", country:"KOR", isTeam:true, size:4, teamMembers:["Kim Gilli","Choi Minjeong","(2 additional — confirm at olympics.com)"], g:1,s:0,b:0, sport:"Short Track Speed Skating", events:["Women's 3000m Relay (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:174, name:"Choi Minjeong", country:"KOR", g:0,s:1,b:0, sport:"Short Track Speed Skating", events:["Women's 1500m (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:175, name:"Hwang Daeheon", country:"KOR", g:0,s:1,b:0, sport:"Short Track Speed Skating", events:["Men's 1500m (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:176, name:"Korea Men's Short Track 5000m Relay", country:"KOR", isTeam:true, size:4, teamMembers:["Hwang Daeheon","Rim Jongun","(2 additional — confirm at olympics.com)"], g:0,s:1,b:0, sport:"Short Track Speed Skating", events:["Men's 5000m Relay (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:177, name:"Rim Jongun", country:"KOR", g:0,s:0,b:1, sport:"Short Track Speed Skating", events:["Men's 1000m (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:178, name:"Kim Sangkyum", country:"KOR", g:0,s:1,b:0, sport:"Snowboard", events:["Men's Parallel Giant Slalom (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:179, name:"Yu Seungeun", country:"KOR", g:0,s:0,b:1, sport:"Snowboard", events:["Women's Big Air (B)"], note:"Age 18. Her first Olympic medal.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ KAZAKHSTAN ════════════════════════════════════════════════════════════
+    { id:171, name:"Mikhail Shaidorov", country:"KAZ", g:1,s:0,b:0, sport:"Figure Skating", events:["Men's Singles (G)"], note:"Only the 2nd Olympic figure skating medal for Kazakhstan in history (after the late Denis Ten).", source:"theworlddata.com / sportsgrid.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ AUSTRALIA ═════════════════════════════════════════════════════════════
+    { id:180, name:"Cooper Woods", country:"AUS", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Men's Moguls (G)"], note:"Pipped Mikael Kingsbury (CAN) in a tiebreak. Kingsbury won his 3rd Olympic silver.", source:"NBC Olympics / olympics.com", source_url:"https://www.nbcolympics.com/news/boosted-three-consecutive-gold-medal-days-australia-sets-nations-winter-olympics-record" },
+    { id:181, name:"Josie Baff", country:"AUS", g:1,s:0,b:0, sport:"Snowboard", events:["Women's Snowboard Cross (G)"], note:"Australia's first-ever women's snowboard cross gold.", source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-josie-baff-claims-australias-first-gold-in-women-s-snowboard-cross" },
+    { id:182, name:"Jakara Anthony", country:"AUS", g:1,s:0,b:0, sport:"Freestyle Skiing", events:["Women's Dual Moguls (G)"], note:"Won the first-ever women's dual moguls Olympic gold.", source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/history-makers-breakthrough-stars-highlights-australia-most-successful-winter-olympics-ever" },
+    { id:183, name:"Scotty James", country:"AUS", g:0,s:1,b:0, sport:"Snowboard", events:["Men's Halfpipe (S)"], source:"olympics.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/history-makers-breakthrough-stars-highlights-australia-most-successful-winter-olympics-ever" },
+    { id:184, name:"Matt Graham", country:"AUS", g:0,s:0,b:1, sport:"Freestyle Skiing", events:["Men's Dual Moguls (B)"], note:"Medal was the one that broke Australia's previous best Winter Olympic tally.", source:"NBC Olympics", source_url:"https://www.nbcolympics.com/news/boosted-three-consecutive-gold-medal-days-australia-sets-nations-winter-olympics-record" },
+
+    // ══ GREAT BRITAIN ═════════════════════════════════════════════════════════
+    { id:190, name:"Matt Weston", country:"GBR", g:2,s:0,b:0, sport:"Skeleton", events:["Men's Skeleton (G)","Mixed Team Skeleton (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:191, name:"GBR Mixed Team Snowboard Cross", country:"GBR", isTeam:true, size:2, teamMembers:["Confirm team members at olympics.com"], g:1,s:0,b:0, sport:"Snowboard", events:["Mixed Team Snowboard Cross (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:192, name:"Zoe Atkin", country:"GBR", g:0,s:0,b:1, sport:"Freestyle Skiing", events:["Women's Freeski Halfpipe (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:193, name:"GBR Men's Curling", country:"GBR", isTeam:true, size:4, teamMembers:["Confirm team at olympics.com"], g:0,s:1,b:0, sport:"Curling", events:["Men's Curling (S) — lost 9-6 to Canada in final"], note:"Canada beat Great Britain 9-6 in the men's curling final.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ CZECHIA ═══════════════════════════════════════════════════════════════
+    { id:200, name:"Zuzana Maderova", country:"CZE", g:1,s:0,b:0, sport:"Snowboard", events:["Women's Parallel Giant Slalom (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:201, name:"Metodej Jilek", country:"CZE", g:1,s:1,b:0, sport:"Speed Skating", events:["Men's 10,000m (G)","Men's 5000m (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:202, name:"Eva Adamczykova", country:"CZE", g:0,s:1,b:0, sport:"Snowboard", events:["Women's Snowboard Cross (S)"], note:"3rd Olympic medal. Returned just 2 months after maternity leave.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:203, name:"Tereza Vobornikova", country:"CZE", g:0,s:0,b:1, sport:"Biathlon", events:["Women's 12.5km Mass Start (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ SLOVENIA ══════════════════════════════════════════════════════════════
+    { id:210, name:"Domen Prevc", country:"SLO", g:1,s:0,b:0, sport:"Ski Jumping", events:["Men's Large Hill Individual (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:211, name:"SLO Ski Jumping Mixed Team", country:"SLO", isTeam:true, size:4, teamMembers:["Domen Prevc","Nika Prevc","(2 additional — confirm at olympics.com)"], g:1,s:0,b:0, sport:"Ski Jumping", events:["Mixed Team (G)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:212, name:"Nika Prevc", country:"SLO", g:0,s:1,b:1, sport:"Ski Jumping", events:["Women's Normal Hill Individual (S)","Women's Large Hill Individual (B)"], note:"Brother Domen and sister Nika both won medals for Slovenia — a historic family performance.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ SPAIN ═════════════════════════════════════════════════════════════════
+    { id:220, name:"Orio Cardona Coll", country:"ESP", g:1,s:0,b:0, sport:"Ski Mountaineering", events:["Men's Sprint (G) — Olympic debut event"], note:"Spain's first Winter Olympic gold since 1972.", source:"theworlddata.com / nbc.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+    { id:221, name:"Ana Alonso Rodriguez", country:"ESP", g:0,s:0,b:1, sport:"Ski Mountaineering", events:["Women's Sprint (B)"], note:"Won bronze less than 5 months after being hit by a car — torn ligaments, fractures, dislocated joints.", source:"nbc.com / olympics.com", source_url:"https://www.nbc.com/nbc-insider/what-country-has-most-medals-at-2026-winter-olympics-medal-count" },
+    { id:222, name:"ESP (1 additional bronze)", country:"ESP", g:0,s:0,b:1, sport:"Ski Mountaineering (TBC)", events:["Confirm event at olympics.com"], source:"People's Daily final medal table", source_url:"https://en.people.cn/n3/2026/0224/c90000-20427593.html" },
+
+    // ══ BRAZIL ════════════════════════════════════════════════════════════════
+    { id:230, name:"Lucas Pinheiro Braathen", country:"BRA", g:1,s:0,b:0, sport:"Alpine Skiing", events:["Men's Giant Slalom (G)"], note:"Brazil's first-ever Winter Olympic gold medal AND first-ever Winter Olympic medal of any colour. First South American in history to win a Winter Olympic medal.", source:"theworlddata.com / CBS News", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ KAZAKHSTAN ════════════════════════════════════════════════════════════
+    // Mikhail Shaidorov listed above under KOR section (id:171) — moving to correct country
+    // { id:171 } above has country:"KAZ" — correct
+
+    // ══ POLAND ════════════════════════════════════════════════════════════════
+    { id:240, name:"Kacper Tomasiak", country:"POL", g:0,s:1,b:1, sport:"Ski Jumping", events:["Men's Normal Hill Individual (S)","Men's Large Hill Individual (B)"], note:"Poland won 0 gold at 2026, so the full physical gift package (apartment, car, etc.) was not triggered.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:241, name:"Poland Men's Ski Jumping Super Team", country:"POL", isTeam:true, size:4, teamMembers:["Kacper Tomasiak","(3 additional — confirm at olympics.com)"], g:0,s:1,b:0, sport:"Ski Jumping", events:["Men's Super Team (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:242, name:"Vladimir Semirunniy", country:"POL", g:0,s:1,b:0, sport:"Speed Skating", events:["Men's 10,000m (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ NEW ZEALAND ═══════════════════════════════════════════════════════════
+    { id:250, name:"Zoi Sadowski-Synnott", country:"NZL", g:0,s:2,b:0, sport:"Snowboard", events:["Women's Big Air (S)","Women's Slopestyle (S)"], note:"5 career Olympic medals — the most by any snowboarder ever, male or female. Went for history but silver in both events.", source:"olympics.com / NBC Olympics", source_url:"https://www.olympics.com/en/milano-cortina-2026/news/winter-olympics-2026-snowboard-slopestyle-fukada-mari-gold-japan" },
+
+    // ══ FINLAND ═══════════════════════════════════════════════════════════════
+    { id:260, name:"Suvi Minkkinen", country:"FIN", g:0,s:1,b:1, sport:"Biathlon", events:["Women's 10km Pursuit (B)"], note:"The silver listed in earlier sources appears to have been a data error — Minkkinen confirmed bronze in Women's Pursuit per the official table.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:261, name:"Finland Women's Cross-Country Relay", country:"FIN", isTeam:true, size:4, teamMembers:["Confirm relay team at olympics.com"], g:0,s:0,b:1, sport:"Cross-Country Skiing", events:["Women's 4×7.5km Relay (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:262, name:"Finland Men's Ice Hockey", country:"FIN", isTeam:true, size:23, teamMembers:["Confirm roster at olympics.com"], g:0,s:0,b:1, sport:"Ice Hockey", events:["Men's Bronze Medal Game (B)"], note:"Finland won the bronze medal game 6-1 over Slovakia.", source:"olympics.com official results / theworlddata.com", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:263, name:"Eero Hirvonen", country:"FIN", g:0,s:0,b:1, sport:"Nordic Combined", events:["Individual Gundersen Normal Hill/10km (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:264, name:"Ilkka Herola", country:"FIN", g:0,s:0,b:1, sport:"Nordic Combined", events:["Individual Gundersen Large Hill/10km (B)"], note:"Norway's Jens Luraas Oftebro pipped Finland by half a second.", source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:265, name:"Finland Nordic Combined Team Sprint", country:"FIN", isTeam:true, size:2, teamMembers:["Confirm team at olympics.com"], g:0,s:1,b:0, sport:"Nordic Combined", events:["Team Sprint (S)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ LATVIA ════════════════════════════════════════════════════════════════
+    { id:270, name:"Elina Bota", country:"LAT", g:0,s:1,b:0, sport:"Luge", events:["Women's Singles (S)"], source:"sportsgrid.com", source_url:"https://www.sportsgrid.com/olympics/article/winter-olympics-2026-final-official-medal-count-tracker" },
+    { id:271, name:"LAT Short Track (bronze)", country:"LAT", g:0,s:0,b:1, sport:"Short Track Speed Skating", events:["Men's 1500m (B)"], note:"Latvia's first speed skating medal.", source:"theworlddata.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ DENMARK ════════════════════════════════════════════════════════════════
+    { id:280, name:"Viktor Hald Thorup", country:"DEN", g:0,s:1,b:0, sport:"Speed Skating", events:["Men's (event — confirm at olympics.com, S)"], note:"Denmark's medal was added in the final weekend of the Games.", source:"sportsgrid.com", source_url:"https://www.sportsgrid.com/olympics/article/winter-olympics-2026-final-official-medal-count-tracker" },
+
+    // ══ ESTONIA ═══════════════════════════════════════════════════════════════
+    { id:290, name:"Henry Sildaru", country:"EST", g:0,s:1,b:0, sport:"Freestyle Skiing", events:["Men's Halfpipe (S)"], source:"sportsgrid.com", source_url:"https://www.sportsgrid.com/olympics/article/winter-olympics-2026-final-official-medal-count-tracker" },
+
+    // ══ GEORGIA ═══════════════════════════════════════════════════════════════
+    { id:300, name:"GEO Figure Skating Pairs", country:"GEO", isTeam:true, size:2, teamMembers:["Anastasiia Metelkina","Luka Berulava"], g:0,s:1,b:0, sport:"Figure Skating", events:["Pairs (S)"], note:"Georgia's first-ever Winter Olympic medal of any colour.", source:"theworlddata.com / nbc.com", source_url:"https://theworlddata.com/gold-medal-statistics-in-2026-winter-olympics/" },
+
+    // ══ BULGARIA ══════════════════════════════════════════════════════════════
+    { id:310, name:"Tervel Zamfirov", country:"BUL", g:0,s:0,b:1, sport:"Snowboard", events:["Men's Parallel Giant Slalom (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+    { id:311, name:"Lora Hristova", country:"BUL", g:0,s:0,b:1, sport:"Biathlon", events:["Women's 15km Individual (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" },
+
+    // ══ BELGIUM ═══════════════════════════════════════════════════════════════
+    { id:320, name:"Belgium Mixed Team Short Track Relay", country:"BEL", isTeam:true, size:4, teamMembers:["Confirm team members at olympics.com"], g:0,s:0,b:1, sport:"Short Track Speed Skating", events:["Mixed Team Relay (B)"], source:"olympics.com official results", source_url:"https://www.olympics.com/en/milano-cortina-2026/medals/medallists" }
+];
+
+// ─── CALC ──────────────────────────────────────────────────────────────────────
+// Always returns per-member value. For teams, this is what each individual receives.
+// The USA header total multiplies by team size separately.
+let currentFilter = 'all';
+let currentSort = 'payout'; // 'payout' | 'medals'
+
+function medalCount(a) {
+    return (a.g||0) + (a.s||0) + (a.b||0);
+}
+
+function setSort(type, btn) {
+    currentSort = type;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+}
+
+function calc(a) {
+    const r = REWARDS[a.country] || { g:0, s:0, b:0, fixed_bonus:0, physical_est:{} };
+    // For team events, each medal tier only counts once (1 medal per person, not per gold won)
+    const gCount = a.isTeam ? Math.min(a.g, 1) : a.g;
+    const sCount = a.isTeam ? Math.min(a.s, 1) : a.s;
+    const bCount = a.isTeam ? Math.min(a.b, 1) : a.b;
+    const cash = (gCount*(r.g||0)) + (sCount*(r.s||0)) + (bCount*(r.b||0));
+    const phys = (gCount*(r.physical_est?.g||0)) + (sCount*(r.physical_est?.s||0)) + (bCount*(r.physical_est?.b||0));
+    const fixed = (a.g>0||a.s>0||a.b>0) ? (r.fixed_bonus||0) : 0;
+    return { total: cash+phys+fixed, cash, physical:phys, non_monetary: r.non_monetary||'' };
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+    const search = document.getElementById('search').value.toLowerCase();
+    // USA total: sum per-member value × team size for teams, or just value for individuals
+    const usaTotal = ATHLETES.filter(a => a.country==='USA')
+        .reduce((sum,a) => sum + calc(a).total * (a.isTeam ? (a.size||1) : 1), 0);
+    document.getElementById('usa-total-header').innerText = `$${usaTotal.toLocaleString()}`;
+
+    const filtered = ATHLETES.filter(a => {
+        const res = calc(a);
+        const q = (a.name+a.country+a.sport+(a.events||[]).join(' ')).toLowerCase();
+        if (!q.includes(search)) return false;
+        if (currentFilter==='usa') return a.country==='USA';
+        if (currentFilter==='physical') return res.physical>0;
+        if (currentFilter==='perks') return res.non_monetary!=='';
+        return true;
+    }).sort((a,b) => {
+        if (currentSort === 'medals') return medalCount(b) - medalCount(a);
+        return calc(b).total - calc(a).total;
+    });
+
+    document.getElementById('leaderboard-body').innerHTML = filtered.map((a,i) => {
+        const res = calc(a);
+        const isUSA = a.country==='USA';
+        const medals = medalCount(a);
+        const medalDots = [
+            ...Array(a.g||0).fill('<span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-yellow-400 border border-yellow-500 inline-block" title="Gold"></span>'),
+            ...Array(a.s||0).fill('<span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-300 border border-slate-400 inline-block" title="Silver"></span>'),
+            ...Array(a.b||0).fill('<span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-orange-400 border border-orange-500 inline-block" title="Bronze"></span>')
+        ].join('');
+        return `
+        <tr onclick="showDetails(${a.id})" class="${isUSA ? 'bg-blue-50 hover:bg-blue-100' : 'border-b border-slate-100'}">
+            <td class="p-3 sm:p-4">
+                <div class="font-bold text-xs sm:text-sm leading-snug">
+                    <span class="text-slate-400 mr-0.5">#${i+1}</span> ${a.name}
+                    ${a.isTeam ? `<span class="ml-1 text-[8px] bg-slate-200 text-slate-600 rounded px-1 py-0.5 uppercase font-black">Team</span>` : ''}
+                </div>
+                <div class="text-[10px] text-slate-400 uppercase tracking-tight mt-0.5">
+                    <span class="sm:hidden font-semibold text-slate-500">${a.country} · </span>${a.sport}
+                </div>
+            </td>
+            <td class="p-3 sm:p-4 font-semibold text-slate-500 text-sm hidden sm:table-cell">${a.country}</td>
+            <td class="p-3 sm:p-4">
+                <div class="flex gap-0.5 flex-wrap">${medalDots}</div>
+                ${currentSort === 'medals' ? `<div class="text-[10px] text-teal-700 font-bold mt-0.5">${medals} medal${medals!==1?'s':''}</div>` : ''}
+            </td>
+            <td class="p-3 sm:p-4 text-right">
+                <div class="money text-xs sm:text-sm">$${res.total.toLocaleString()}</div>
+                ${a.isTeam ? `<div class="text-[9px] text-slate-400 uppercase">${a.size} members</div>` : ''}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+// ─── ATHLETE DETAIL MODAL ──────────────────────────────────────────────────────
+function showDetails(id) {
+    const a = ATHLETES.find(x => x.id===id);
+    const r = REWARDS[a.country] || {};
+    const res = calc(a);
+
+    const gifts = [];
+    if (r.physical_gifts) {
+        if (a.g && r.physical_gifts.g?.length) r.physical_gifts.g.forEach(g => gifts.push(`🥇 ${g}`));
+        if (a.s && r.physical_gifts.s?.length) r.physical_gifts.s.forEach(g => gifts.push(`🥈 ${g}`));
+        if (a.b && r.physical_gifts.b?.length) r.physical_gifts.b.forEach(g => gifts.push(`🥉 ${g}`));
+    }
+    const giftsHtml = gifts.length
+        ? `<ul class="mt-1 space-y-0.5">${gifts.map(g=>`<li class="text-xs text-slate-700">${g}</li>`).join('')}</ul>`
+        : `<span class="text-xs text-slate-400 italic">None reported</span>`;
+
+    const membersHtml = a.isTeam && a.teamMembers?.length
+        ? `<div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-1">
+               <div class="font-bold text-slate-600 uppercase text-[10px] tracking-wide mb-1">Team Members (${a.size})</div>
+               ${a.teamMembers.map(m=>`<div class="text-slate-700">• ${m}</div>`).join('')}
+           </div>` : '';
+
+    const noteHtml = a.note
+        ? `<div class="bg-blue-50 border border-blue-200 text-blue-800 text-xs rounded-lg p-3">📌 ${a.note}</div>` : '';
+
+    document.getElementById('modal-content').innerHTML = `
+        <div>
+            <h3 class="text-xl font-black">${a.name}</h3>
+            <p class="text-xs text-slate-400 uppercase font-bold mt-0.5">${a.country} · ${a.sport}</p>
+        </div>
+        ${noteHtml}
+        ${membersHtml}
+        <div class="space-y-2 text-sm">
+            <div class="flex justify-between border-b pb-2">
+                <span class="text-slate-600">Events</span>
+                <span class="text-right italic text-xs max-w-xs">${(a.events||[]).join(', ')}</span>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+                <span class="text-slate-600">Medals</span>
+                <b>${a.g||0}G · ${a.s||0}S · ${a.b||0}B</b>
+            </div>
+            <div class="flex justify-between border-b pb-2">
+                <span class="text-slate-600">Cash Payout</span>
+                <b class="money">$${res.cash.toLocaleString()}</b>
+            </div>
+            ${r.fixed_bonus ? `<div class="flex justify-between border-b pb-2"><span class="text-slate-600">Stevens Endowment</span><b class="money">$${r.fixed_bonus.toLocaleString()}</b></div>` : ''}
+            <div class="border-b pb-2">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Physical Gifts (Est.)</span>
+                    <b class="money">$${res.physical.toLocaleString()}</b>
+                </div>
+                ${giftsHtml}
+            </div>
+            <div class="flex justify-between border-b pb-2">
+                <span class="text-slate-600">Total Est. Value</span>
+                <b class="money text-base">$${res.total.toLocaleString()}</b>
+            </div>
+            ${res.non_monetary ? `<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs"><b class="text-amber-900">Non-Monetary Perks:</b><br/><span class="text-amber-800">${res.non_monetary}</span></div>` : ''}
+        </div>
+        <div class="border-t pt-3 text-[11px] text-slate-400">
+            <span class="font-bold uppercase tracking-wide">Source:</span>
+            <a href="${a.source_url}" target="_blank" rel="noopener" class="source-link ml-1">${a.source}</a>
+        </div>
+    `;
+    document.getElementById('athlete-modal').classList.add('active');
+}
+
+// ─── COUNTRY RATE CARD MODAL ──────────────────────────────────────────────────
+// Calculate each country's actual total payout across all their athletes at 2026
+function getCountryTotal(noc) {
+    return ATHLETES
+        .filter(a => a.country === noc)
+        .reduce((sum, a) => {
             const res = calc(a);
-            document.getElementById('modal-content').innerHTML = `
-                <h3 class="text-xl font-black mb-1">${a.name}</h3>
-                <p class="text-xs uppercase text-slate-400 font-bold mb-4">${a.country} • ${a.sport}</p>
-                <div class="space-y-3 text-sm">
-                    <div class="flex justify-between border-b pb-2"><span>Medals Won:</span> <b>${a.g}G, ${a.s}S, ${a.b}B</b></div>
-                    <div class="flex justify-between border-b pb-2"><span>Events:</span> <span class="text-right italic">${a.events.join(', ')}</span></div>
-                    <div class="flex justify-between border-b pb-2"><span>Cash Payout:</span> <b class="text-green-700">$${res.cash.toLocaleString()}</b></div>
-                    <div class="flex justify-between border-b pb-2"><span>Physical Gifts (Est):</span> <b class="text-green-700">$${res.physical.toLocaleString()}</b></div>
-                    <div class="bg-amber-50 p-3 rounded-lg text-xs">
-                        <b>Non-Monetary Perks:</b><br/>${res.non_monetary || 'No secondary perks reported.'}
-                    </div>
-                </div>
-            `;
-            document.getElementById('athlete-modal').classList.add('active');
-        }
+            return sum + res.total * (a.isTeam ? (a.size||1) : 1);
+        }, 0);
+}
 
-        function toggleCountryTable() {
-            const content = document.getElementById('country-table-content');
-            content.innerHTML = Object.values(REWARDS).map(r => `
-                <div class="border p-4 rounded-xl space-y-2">
-                    <div class="flex justify-between font-black"><span>${r.name}</span> <span class="text-green-600">G: $${r.g.toLocaleString()}</span></div>
-                    <div class="text-[10px] text-slate-500 uppercase font-bold">Secondary Rewards:</div>
-                    <div class="text-xs text-slate-700">${r.perks}</div>
-                    ${r.non_monetary ? `<div class="text-xs text-blue-800 italic">⭐ ${r.non_monetary}</div>` : ''}
-                </div>
-            `).join('');
-            document.getElementById('country-modal').classList.add('active');
-        }
+function toggleCountryTable() {
+    document.getElementById('country-table-content').innerHTML = Object.entries(REWARDS).map(([noc, r]) => {
+        const tierRows = [['g','🥇 Gold'],['s','🥈 Silver'],['b','🥉 Bronze']].map(([k,label]) => {
+            const cash = r[k]||0;
+            const gifts = r.physical_gifts?.[k]||[];
+            return `<div class="grid grid-cols-[80px_80px_1fr] gap-2 items-start py-1.5 border-b border-slate-100 last:border-0 text-xs">
+                <span class="font-bold">${label}</span>
+                <span class="money text-xs">$${cash.toLocaleString()}</span>
+                <span class="text-slate-500">${gifts.length ? gifts.join(', ') : (cash===0 ? 'No bonus' : 'Cash only')}</span>
+            </div>`;
+        }).join('');
 
-        function filter(type, btn) {
-            currentFilter = type;
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            render();
-        }
+        const countryTotal = getCountryTotal(noc);
+        const totalDisplay = countryTotal > 0
+            ? `<div class="text-right"><div class="text-[10px] text-slate-500 uppercase tracking-wide font-bold">2026 Est. Total Payout</div><div class="money text-xl font-black">$${countryTotal.toLocaleString()}</div></div>`
+            : `<div class="text-right"><div class="text-[10px] text-slate-400 uppercase tracking-wide font-bold">2026 Est. Total Payout</div><div class="text-slate-400 text-sm font-bold italic">No cash bonus</div></div>`;
 
-        function closeModals() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        }
+        return `<div class="border border-slate-200 rounded-xl p-4 space-y-2">
+            <div class="flex items-start justify-between gap-4 pb-2 border-b border-slate-200 mb-1">
+                <div class="font-black text-base">${r.name}</div>
+                ${totalDisplay}
+            </div>
+            ${tierRows}
+            <div class="text-xs text-slate-600 pt-1 border-t border-slate-100 mt-1">${r.perks}</div>
+            ${r.non_monetary ? `<div class="text-xs text-blue-800 italic bg-blue-50 rounded px-2 py-1.5">⭐ ${r.non_monetary}</div>` : ''}
+            <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                <span class="font-bold uppercase tracking-wide">Source:</span>
+                <a href="${r.source_url}" target="_blank" rel="noopener" class="source-link ml-1">${r.source}</a>
+            </div>
+        </div>`;
+    }).join('');
+    document.getElementById('country-modal').classList.add('active');
+}
 
-        document.getElementById('search').addEventListener('input', render);
-        render();
-    </script>
+function filter(type, btn) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+}
+
+function closeModals() {
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+}
+
+document.getElementById('search').addEventListener('input', render);
+render();
+</script>
+    <!-- BOTTOM DISCLAIMER -->
+    <div class="max-w-5xl mx-auto px-4 pb-8 pt-4">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800">
+            ⚠️ <strong>Payout figures are estimates</strong> based on publicly reported per-medal bonuses. Team event payouts are shown per individual member. Some country bonus structures are not officially published — see source links in each athlete's detail and the Country Rate Card for attribution.
+        </div>
+    </div>
 </body>
 </html>
