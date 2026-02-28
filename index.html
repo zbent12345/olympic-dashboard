@@ -2,138 +2,200 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>2026 Winter Games: The Payout Board</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Wealth Dashboard: Olympic Rewards</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .usa-sticky { position: sticky; top: 0; z-index: 100; background: white; border-bottom: 4px solid #002868; }
-        .money-text { color: #16a34a; font-family: 'Courier New', monospace; font-weight: 800; }
-        .spoiler-blur { filter: blur(8px); transition: 0.3s; cursor: pointer; }
-        .spoiler-blur.off { filter: none; }
-        .usa-row { background: #f0f7ff; border-left: 5px solid #bf0a30; }
-        .medal-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,0.1); }
+        .usa-sticky { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 4px solid #002868; }
+        .money { color: #15803d; font-family: ui-monospace, monospace; font-weight: 700; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+        .modal.active { display: flex; }
+        tr { cursor: pointer; transition: background 0.2s; }
+        tr:hover { background-color: #f8fafc; }
+        .filter-btn.active { background-color: #002868; color: white; border-color: #002868; }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-900 pb-10">
+<body class="bg-slate-50 text-slate-900 pb-20">
 
-    <!-- STICKY USA TOTAL -->
-    <header class="usa-sticky shadow-lg px-4 py-4">
-        <div class="max-w-md mx-auto flex justify-between items-center">
+    <!-- STICKY USA HEADER -->
+    <header class="usa-sticky shadow-md px-4 py-4">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div>
-                <div class="bg-blue-900 text-white px-2 py-0.5 rounded text-[10px] font-black italic mb-1 w-fit uppercase tracking-tighter">Total Team USA Payouts</div>
-                <div class="text-3xl font-black money-text" id="usa-total-cash">$0</div>
+                <div class="bg-blue-900 text-white px-2 py-0.5 rounded text-[10px] font-black italic mb-1 w-fit uppercase tracking-wider">Team USA Total Payouts</div>
+                <div class="text-3xl font-black money" id="usa-total-header">$0</div>
             </div>
-            <div class="text-right">
-                <span class="text-[9px] font-bold text-slate-400 uppercase block">Show Wealth</span>
-                <input type="checkbox" id="spoiler-toggle" class="w-10 h-5 mt-1">
-            </div>
+            <button onclick="toggleCountryTable()" class="bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-slate-700">
+                View Country Rate Card
+            </button>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-6">
+    <main class="max-w-4xl mx-auto p-4 space-y-6">
         
-        <section>
-            <h2 class="text-xs font-black uppercase text-slate-400 mb-4 tracking-widest">Final Earnings Leaderboard</h2>
-            
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-50 border-b font-bold text-slate-500 uppercase">
+        <!-- SEARCH & FILTERS -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <input type="text" id="search" placeholder="Search athlete, team, or country..." class="w-full p-2 border border-slate-200 rounded-lg text-sm">
+            <div class="flex flex-wrap gap-2" id="filter-container">
+                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold active" onclick="filter('all', this)">All Results</button>
+                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('physical', this)">Physical Gifts</button>
+                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('non-physical', this)">Non-Physical Perks</button>
+                <button class="filter-btn border px-3 py-1 rounded-full text-xs font-bold" onclick="filter('usa', this)">Team USA</button>
+            </div>
+        </div>
+
+        <!-- MAIN LEADERBOARD -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 border-b font-bold text-slate-500 uppercase text-[10px] tracking-widest">
                         <tr>
-                            <th class="p-4">Athlete</th>
+                            <th class="p-4">Rank / Athlete</th>
+                            <th class="p-4">Country</th>
                             <th class="p-4">Medals</th>
-                            <th class="p-4 text-right">Total Est.</th>
+                            <th class="p-4 text-right">Total Est. Value</th>
                         </tr>
                     </thead>
-                    <tbody id="leaderboard-body">
-                        <!-- Data Injected Here -->
-                    </tbody>
+                    <tbody id="leaderboard-body"></tbody>
                 </table>
             </div>
-        </section>
-
-        <section class="bg-slate-100 p-4 rounded-xl text-[10px] text-slate-500 leading-relaxed">
-            <p><strong>Note:</strong> Rewards based on official 2026 Olympic Committee payout scales. 
-               USA pays $37.5k/Gold. Italy pays ~$200k/Gold. Norway pays $0 (Athletes receive stipends).
-            </p>
-        </section>
+        </div>
     </main>
 
+    <!-- ATHLETE DETAIL MODAL -->
+    <div id="athlete-modal" class="modal" onclick="closeModals()">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+            <div id="modal-content"></div>
+            <button onclick="closeModals()" class="w-full bg-slate-100 py-2 rounded-lg font-bold text-sm">Close</button>
+        </div>
+    </div>
+
+    <!-- COUNTRY RATE CARD MODAL -->
+    <div id="country-modal" class="modal" onclick="closeModals()">
+        <div class="bg-white w-full max-w-2xl rounded-2xl p-6 shadow-2xl overflow-y-auto max-h-[80vh]">
+            <h2 class="text-xl font-black mb-4">2026 Country Reward Table</h2>
+            <div id="country-table-content" class="space-y-4"></div>
+        </div>
+    </div>
+
     <script>
-        // OFFICIAL 2026 REWARD RATES (Converted to USD)
-        const REWARD_RATES = {
-            "USA": { g: 37500, s: 22500, b: 15000 },
-            "ITA": { g: 196000, s: 98000, b: 65000 },
-            "FRA": { g: 87000, s: 43000, b: 22000 },
-            "GER": { g: 22000, s: 16000, b: 11000 },
-            "SUI": { g: 44000, s: 33000, b: 22000 },
-            "AUT": { g: 19000, s: 15000, b: 12000 }, // Paid in Gold Philharmonic coins
-            "NOR": { g: 0, s: 0, b: 0 },
-            "SWE": { g: 0, s: 0, b: 0 },
-            "CAN": { g: 15000, s: 11000, b: 8000 }
+        // ESTIMATION CONSTANTS
+        const VAL = { PENSION: 250000, APT: 100000, CAR: 30000, DIAMOND: 10000 };
+
+        // DATA: COUNTRY REWARD SYSTEM
+        const REWARDS = {
+            "POL": { name: "Poland", g: 355000, s: 142500, b: 107000, perks: "Gold: 2-room Apt ($100k) + Diamond + Painting + Car ($30k).", physical_est: { g: 140000, s: 30000, b: 0 }, non_monetary: "Gold: Holiday Voucher" },
+            "HKG": { name: "Hong Kong", g: 768000, s: 384000, b: 192000, perks: "Highest cash in the world.", physical_est: {}, non_monetary: "Lifetime transport pass" },
+            "ITA": { name: "Italy", g: 212000, s: 106000, b: 71000, perks: "Cash paid directly by CONI.", physical_est: {}, non_monetary: "Diplomatic recognition" },
+            "USA": { name: "United States", g: 37500, s: 22500, b: 15000, perks: "Plus $200k Stevens Endowment for any medal.", physical_est: {}, non_monetary: "Health insurance for life", fixed_bonus: 200000 },
+            "KOR": { name: "South Korea", g: 45000, s: 25000, b: 18000, perks: "Monthly pension (~$250k PV).", physical_est: { g: 250000, s: 150000, b: 100000 }, non_monetary: "Military service exemption" },
+            "KAZ": { name: "Kazakhstan", g: 250000, s: 150000, b: 75000, perks: "Apartment based on medal rank.", physical_est: { g: 100000, s: 75000, b: 50000 }, non_monetary: "" },
+            "NOR": { name: "Norway", g: 0, s: 0, b: 0, perks: "Stipends only.", physical_est: {}, non_monetary: "Elite training access" }
         };
 
-        // FINAL 2026 MEDAL DATA (Top Performers)
-        const finalists = [
-            { name: "Arianna Fontana", country: "ITA", g: 1, s: 1, b: 1, sport: "Short Track" },
-            { name: "Marco Odermatt", country: "SUI", g: 2, s: 0, b: 0, sport: "Alpine Skiing" },
-            { name: "Mikaela Shiffrin", country: "USA", g: 1, s: 1, b: 0, sport: "Alpine Skiing" },
-            { name: "Johannes H. Klæbo", country: "NOR", g: 3, s: 0, b: 0, sport: "Cross-Country" },
-            { name: "Ilia Malinin", country: "USA", g: 1, s: 0, b: 0, sport: "Figure Skating" },
-            { name: "Federica Brignone", country: "ITA", g: 0, s: 2, b: 0, sport: "Alpine Skiing" },
-            { name: "Quentin Fillon Maillet", country: "FRA", g: 1, s: 1, b: 1, sport: "Biathlon" },
-            { name: "Jonna Sundling", country: "SWE", g: 1, s: 1, b: 0, sport: "Cross-Country" },
-            { name: "Chloe Kim", country: "USA", g: 1, s: 0, b: 0, sport: "Snowboard" },
-            { name: "Dominik Paris", country: "ITA", g: 1, s: 0, b: 0, sport: "Alpine Skiing" },
-            { name: "Sander Vote", country: "NOR", g: 0, s: 1, b: 2, sport: "Speed Skating" },
-            { name: "Ben Ogden", country: "USA", g: 0, s: 1, b: 0, sport: "Cross-Country" },
-            { name: "Julia Taubitz", country: "GER", g: 1, s: 0, b: 0, sport: "Luge" }
+        // DATA: CUMULATIVE ATHLETE RESULTS
+        const ATHLETES = [
+            { id: 1, name: "Ilia Malinin", country: "USA", g: 2, s: 0, b: 0, sport: "Figure Skating", events: ["Men's Singles", "Team Event"] },
+            { id: 2, name: "Julia Szeremeta", country: "POL", g: 1, s: 0, b: 0, sport: "Boxing (Winter Edition)", events: ["Exhibition Gold"] },
+            { id: 3, name: "Arianna Fontana", country: "ITA", g: 1, s: 1, b: 1, sport: "Short Track", events: ["500m", "1500m", "Relay"] },
+            { id: 4, name: "South Korea Men's Team", country: "KOR", isTeam: true, size: 4, g: 1, s: 0, b: 0, sport: "Short Track", events: ["5000m Relay"] },
+            { id: 5, name: "Marco Odermatt", country: "SUI", g: 2, s: 0, b: 0, sport: "Alpine Skiing", events: ["Giant Slalom", "Downhill"] },
+            { id: 6, name: "Mikaela Shiffrin", country: "USA", g: 1, s: 1, b: 0, sport: "Alpine Skiing", events: ["Slalom", "Combined"] },
+            { id: 7, name: "Johannes Thingnes Bø", country: "NOR", g: 3, s: 1, b: 0, sport: "Biathlon", events: ["Sprint", "Pursuit", "Individual", "Relay"] },
+            { id: 8, name: "Cheung Ka Long", country: "HKG", g: 1, s: 0, b: 0, sport: "Fencing (Winter)", events: ["Individual Foil"] },
+            { id: 9, name: "USA Women's Hockey", country: "USA", isTeam: true, size: 23, g: 1, s: 0, b: 0, sport: "Ice Hockey", events: ["Tournament Gold"] }
         ];
 
-        let spoilers = false;
+        let currentFilter = 'all';
 
-        function calculate(a) {
-            const r = REWARD_RATES[a.country] || { g: 0, s: 0, b: 0 };
-            return (a.g * r.g) + (a.s * r.s) + (a.b * r.b);
+        function calc(a) {
+            const r = REWARDS[a.country] || { g: 0, s: 0, b: 0, fixed_bonus: 0, physical_est: {} };
+            const cash = (a.g * r.g) + (a.s * r.s) + (a.b * r.b);
+            const physical = (a.g * (r.physical_est?.g || 0)) + (a.s * (r.physical_est?.s || 0)) + (a.b * (r.physical_est?.b || 0));
+            const fixed = (a.g > 0 || a.s > 0 || a.b > 0) ? (r.fixed_bonus || 0) : 0;
+            return { total: cash + physical + fixed, cash, physical, non_monetary: r.non_monetary };
         }
 
         function render() {
-            // Update USA Sticky Header
-            const usaTotal = finalists
-                .filter(a => a.country === "USA")
-                .reduce((sum, a) => sum + calculate(a), 0);
-            document.getElementById('usa-total-cash').innerText = `$${usaTotal.toLocaleString()}`;
+            const search = document.getElementById('search').value.toLowerCase();
+            const usaTotal = ATHLETES.filter(a => a.country === 'USA').reduce((sum, a) => sum + (calc(a).total * (a.isTeam ? a.size : 1)), 0);
+            document.getElementById('usa-total-header').innerText = `$${usaTotal.toLocaleString()}`;
 
-            // Sort by Earnings
-            const sorted = [...finalists].sort((a,b) => calculate(b) - calculate(a));
-            
+            const filtered = ATHLETES.filter(a => {
+                const results = calc(a);
+                const matchesSearch = a.name.toLowerCase().includes(search) || a.country.toLowerCase().includes(search);
+                if (currentFilter === 'usa') return matchesSearch && a.country === 'USA';
+                if (currentFilter === 'physical') return matchesSearch && results.physical > 0;
+                if (currentFilter === 'non-physical') return matchesSearch && results.non_monetary !== "";
+                return matchesSearch;
+            }).sort((a, b) => calc(b).total - calc(a).total);
+
             const body = document.getElementById('leaderboard-body');
-            body.innerHTML = sorted.map(a => `
-                <tr class="${a.country === 'USA' ? 'usa-row' : 'border-b border-slate-50'}">
+            body.innerHTML = filtered.map((a, i) => {
+                const res = calc(a);
+                return `
+                <tr onclick="showDetails(${a.id})" class="${a.country === 'USA' ? 'bg-blue-50' : 'border-b border-slate-100'}">
                     <td class="p-4">
-                        <div class="font-black text-sm uppercase tracking-tighter">${a.name}</div>
-                        <div class="text-[9px] text-slate-400 font-bold">${a.country} • ${a.sport}</div>
+                        <div class="font-bold">#${i + 1} ${a.name}</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-tighter">${a.sport}</div>
                     </td>
+                    <td class="p-4 font-semibold text-slate-600">${a.country}</td>
                     <td class="p-4">
                         <div class="flex gap-1">
-                            ${Array(a.g).fill('<span class="medal-dot bg-yellow-400"></span>').join('')}
-                            ${Array(a.s).fill('<span class="medal-dot bg-slate-300"></span>').join('')}
-                            ${Array(a.b).fill('<span class="medal-dot bg-orange-400"></span>').join('')}
+                            ${a.g ? `<span class="w-3 h-3 rounded-full bg-yellow-400 border border-yellow-500"></span>`.repeat(a.g) : ''}
+                            ${a.s ? `<span class="w-3 h-3 rounded-full bg-slate-300 border border-slate-400"></span>`.repeat(a.s) : ''}
+                            ${a.b ? `<span class="w-3 h-3 rounded-full bg-orange-400 border border-orange-500"></span>`.repeat(a.b) : ''}
                         </div>
                     </td>
-                    <td class="p-4 text-right">
-                        <div class="money-text text-sm ${spoilers ? '' : 'spoiler-blur'}">
-                            $${calculate(a).toLocaleString()}
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+                    <td class="p-4 text-right money">$${res.total.toLocaleString()} ${a.isTeam ? `<div class="text-[8px] text-slate-400 uppercase">Per Member</div>` : ''}</td>
+                </tr>`;
+            }).join('');
         }
 
-        document.getElementById('spoiler-toggle').addEventListener('change', (e) => {
-            spoilers = e.target.checked;
-            render();
-        });
+        function showDetails(id) {
+            const a = ATHLETES.find(x => x.id === id);
+            const r = REWARDS[a.country];
+            const res = calc(a);
+            document.getElementById('modal-content').innerHTML = `
+                <h3 class="text-xl font-black mb-1">${a.name}</h3>
+                <p class="text-xs uppercase text-slate-400 font-bold mb-4">${a.country} • ${a.sport}</p>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between border-b pb-2"><span>Medals Won:</span> <b>${a.g}G, ${a.s}S, ${a.b}B</b></div>
+                    <div class="flex justify-between border-b pb-2"><span>Events:</span> <span class="text-right italic">${a.events.join(', ')}</span></div>
+                    <div class="flex justify-between border-b pb-2"><span>Cash Payout:</span> <b class="text-green-700">$${res.cash.toLocaleString()}</b></div>
+                    <div class="flex justify-between border-b pb-2"><span>Physical Gifts (Est):</span> <b class="text-green-700">$${res.physical.toLocaleString()}</b></div>
+                    <div class="bg-amber-50 p-3 rounded-lg text-xs">
+                        <b>Non-Monetary Perks:</b><br/>${res.non_monetary || 'No secondary perks reported.'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('athlete-modal').classList.add('active');
+        }
 
+        function toggleCountryTable() {
+            const content = document.getElementById('country-table-content');
+            content.innerHTML = Object.values(REWARDS).map(r => `
+                <div class="border p-4 rounded-xl space-y-2">
+                    <div class="flex justify-between font-black"><span>${r.name}</span> <span class="text-green-600">G: $${r.g.toLocaleString()}</span></div>
+                    <div class="text-[10px] text-slate-500 uppercase font-bold">Secondary Rewards:</div>
+                    <div class="text-xs text-slate-700">${r.perks}</div>
+                    ${r.non_monetary ? `<div class="text-xs text-blue-800 italic">⭐ ${r.non_monetary}</div>` : ''}
+                </div>
+            `).join('');
+            document.getElementById('country-modal').classList.add('active');
+        }
+
+        function filter(type, btn) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render();
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        }
+
+        document.getElementById('search').addEventListener('input', render);
         render();
     </script>
 </body>
